@@ -6,7 +6,7 @@ A combat tracker for the Fabula Ultima TTRPG, built with SvelteKit, Tailwind CSS
 
 - **Framework**: SvelteKit with Svelte 5 (using runes: `$state`, `$derived`, `$bindable`, `$props`, `$effect`)
 - **Styling**: Tailwind CSS 4 + DaisyUI 5
-- **Theme**: garden (configured in `app.html` via `data-theme="garden"`)
+- **Theme**: autumn (configured in `app.html` via `data-theme="autumn"`)
 - **Persistence**: localStorage for client-side data storage
 
 ## Project Structure

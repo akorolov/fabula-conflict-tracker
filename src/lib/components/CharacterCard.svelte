@@ -1,13 +1,26 @@
 <script lang="ts">
+	interface Statuses {
+		dazed: boolean;
+		weak: boolean;
+		poisoned: boolean;
+		shaken: boolean;
+		slow: boolean;
+		enraged: boolean;
+	}
+
 	interface Props {
 		name: string;
 		hp: number;
 		maxHp: number;
 		mp: number;
 		maxMp: number;
+		hasActed: boolean;
+		player: boolean;
+		statuses: Statuses;
+		onremove?: () => void;
 	}
 
-	let { name = $bindable(), hp = $bindable(), maxHp, mp = $bindable(), maxMp }: Props = $props();
+	let { name = $bindable(), hp = $bindable(), maxHp, mp = $bindable(), maxMp, hasActed = $bindable(), player = $bindable(), statuses = $bindable(), onremove }: Props = $props();
 
 	let inCrisis = $derived.by(() => hp <= Math.floor(maxHp / 2));
 
@@ -99,8 +112,16 @@
 	}
 </script>
 
-<div class="card bg-base-100 border border-base-content/10 rounded-lg">
-	<div class="card-body p-3">
+<div class="card bg-base-100 rounded-lg {hasActed ? 'border-3 border-primary' : 'border border-base-content/10'}">
+	<div class="card-body p-3 flex-row items-center justify-between">
+		{#if !player && onremove}
+			<button type="button" class="btn btn-ghost btn-sm btn-square text-error" onclick={onremove} aria-label="Remove character">
+				<svg class="w-[20px] h-[20px]" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
+				<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5v14m-6-8h6m-6 4h6m4.506-1.494L15.012 12m0 0 1.506-1.506M15.012 12l1.506 1.506M15.012 12l-1.506-1.506M20 19H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1Z"/>
+				</svg>
+			</button>
+		{/if}
+		<div class="flex-1">
 		{#if editingName}
 			<div class="flex items-center gap-1">
 				{#if inCrisis}
@@ -130,7 +151,9 @@
 				{name}
 			</button>
 		{/if}
-		<div class="flex gap-4 text-sm">
+		
+		<div class="flex gap-2 flex-wrap text-sm mt-2">
+			{#if !player}
 			<div class="flex items-center gap-1">
 				<span class="font-semibold text-error">HP</span>
 				{#if editingHp}
@@ -171,6 +194,18 @@
 					</button>
 				{/if}
 			</div>
+			{/if}
+			<div class="join">
+				<input class="join-item btn btn-ghost btn-xs btn-secondary rounded-none" type="checkbox" aria-label="dazed" bind:checked={statuses.dazed} />
+				<input class="join-item btn btn-ghost btn-xs btn-secondary rounded-none" type="checkbox" aria-label="weak" bind:checked={statuses.weak} />
+				<input class="join-item btn btn-ghost btn-xs btn-secondary rounded-none" type="checkbox" aria-label="poisoned" bind:checked={statuses.poisoned} />
+				<input class="join-item btn btn-ghost btn-xs btn-secondary rounded-none" type="checkbox" aria-label="shaken" bind:checked={statuses.shaken} />
+				<input class="join-item btn btn-ghost btn-xs btn-secondary rounded-none" type="checkbox" aria-label="slow" bind:checked={statuses.slow} />
+				<input class="join-item btn btn-ghost btn-xs btn-secondary rounded-none" type="checkbox" aria-label="enraged" bind:checked={statuses.enraged} />
+			</div>
 		</div>
+		
+		</div>
+		<input type="checkbox" class="checkbox checkbox-primary checkbox-lg rounded-sm" bind:checked={hasActed} />
 	</div>
 </div>
