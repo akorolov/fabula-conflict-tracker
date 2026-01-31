@@ -1,4 +1,7 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
+	import { fade } from 'svelte/transition';
+
 	interface Statuses {
 		dazed: boolean;
 		weak: boolean;
@@ -9,6 +12,7 @@
 	}
 
 	interface Props {
+		id: number;
 		name: string;
 		hp: number;
 		maxHp: number;
@@ -20,7 +24,110 @@
 		onremove?: () => void;
 	}
 
-	let { name = $bindable(), hp = $bindable(), maxHp, mp = $bindable(), maxMp, hasActed = $bindable(), player = $bindable(), statuses = $bindable(), onremove }: Props = $props();
+	let { id, name = $bindable(), hp = $bindable(), maxHp, mp = $bindable(), maxMp, hasActed = $bindable(), player = $bindable(), statuses = $bindable(), onremove }: Props = $props();
+
+	let modalOpen = $state(false);
+	let statBlockImage = $state<string | null>(null);
+	let imageWidth = $state<number | null>(null);
+	let imageHeight = $state<number | null>(null);
+
+	// Load image from localStorage on mount
+	$effect(() => {
+		if (browser && !player) {
+			const stored = localStorage.getItem(`enemy-image-${id}`);
+			if (stored) {
+				try {
+					const data = JSON.parse(stored);
+					statBlockImage = data.image;
+					imageWidth = data.width;
+					imageHeight = data.height;
+				} catch {
+					// Handle old format (just the image string)
+					statBlockImage = stored;
+				}
+			}
+		}
+	});
+
+	// Save image to localStorage when it changes
+	$effect(() => {
+		if (browser && !player && statBlockImage !== null) {
+			const data = JSON.stringify({
+				image: statBlockImage,
+				width: imageWidth,
+				height: imageHeight
+			});
+			localStorage.setItem(`enemy-image-${id}`, data);
+		}
+	});
+
+	function openModal() {
+		if (!player) {
+			modalOpen = true;
+		}
+	}
+
+	function closeModal() {
+		modalOpen = false;
+	}
+
+	function handlePaste(e: ClipboardEvent) {
+		const items = e.clipboardData?.items;
+		if (!items) return;
+
+		for (const item of items) {
+			if (item.type.startsWith('image/')) {
+				const file = item.getAsFile();
+				if (file) {
+					const reader = new FileReader();
+					reader.onload = (event) => {
+						const img = new Image();
+						img.onload = () => {
+							// Store original dimensions
+							imageWidth = img.width;
+							imageHeight = img.height;
+
+							// Convert to WebP using canvas
+							const canvas = document.createElement('canvas');
+							canvas.width = img.width;
+							canvas.height = img.height;
+							const ctx = canvas.getContext('2d');
+							if (ctx) {
+								ctx.drawImage(img, 0, 0);
+								// Export as WebP with 0.8 quality
+								statBlockImage = canvas.toDataURL('image/webp', 0.8);
+							}
+						};
+						img.src = event.target?.result as string;
+					};
+					reader.readAsDataURL(file);
+				}
+				break;
+			}
+		}
+	}
+
+	function clearImage() {
+		statBlockImage = null;
+		if (browser) {
+			localStorage.removeItem(`enemy-image-${id}`);
+		}
+	}
+
+	function handleCardClick(e: MouseEvent) {
+		// Don't open modal if clicking on interactive elements
+		const target = e.target as HTMLElement;
+		if (
+			target.closest('button') ||
+			target.closest('input') ||
+			target.closest('a') ||
+			target.tagName === 'BUTTON' ||
+			target.tagName === 'INPUT'
+		) {
+			return;
+		}
+		openModal();
+	}
 
 	let inCrisis = $derived.by(() => hp <= Math.floor(maxHp / 2));
 
@@ -112,7 +219,12 @@
 	}
 </script>
 
-<div class="card bg-base-100 rounded-lg {hasActed ? 'border-3 border-primary' : 'border border-base-content/10'}">
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<div
+	class="card bg-base-100 rounded-lg {hasActed ? 'border-3 border-primary' : 'border border-base-content/10'} {!player ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}"
+	onclick={!player ? handleCardClick : undefined}
+>
 	<div class="card-body p-3 flex-row items-center justify-between">
 		{#if !player && onremove}
 			<button type="button" class="btn btn-ghost btn-sm btn-square text-error" onclick={onremove} aria-label="Remove character">
@@ -125,8 +237,8 @@
 		{#if editingName}
 			<div class="flex items-center gap-1">
 				{#if inCrisis}
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-error shrink-0">
-						<path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+					<svg class="w-[20px] h-[20px] text-error" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+					<path d="M17.133 12.632v-1.8a5.406 5.406 0 0 0-4.154-5.262.955.955 0 0 0 .021-.106V3.1a1 1 0 0 0-2 0v2.364a.955.955 0 0 0 .021.106 5.406 5.406 0 0 0-4.154 5.262v1.8C6.867 15.018 5 15.614 5 16.807 5 17.4 5 18 5.538 18h12.924C19 18 19 17.4 19 16.807c0-1.193-1.867-1.789-1.867-4.175ZM6 6a1 1 0 0 1-.707-.293l-1-1a1 1 0 0 1 1.414-1.414l1 1A1 1 0 0 1 6 6Zm-2 4H3a1 1 0 0 1 0-2h1a1 1 0 1 1 0 2Zm14-4a1 1 0 0 1-.707-1.707l1-1a1 1 0 1 1 1.414 1.414l-1 1A1 1 0 0 1 18 6Zm3 4h-1a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2ZM8.823 19a3.453 3.453 0 0 0 6.354 0H8.823Z"/>
 					</svg>
 				{/if}
 				<input
@@ -144,8 +256,8 @@
 				onclick={startEditingName}
 			>
 				{#if inCrisis}
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-error shrink-0">
-						<path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z" clip-rule="evenodd" />
+					<svg class="w-[20px] h-[20px] text-error" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+					<path d="M17.133 12.632v-1.8a5.406 5.406 0 0 0-4.154-5.262.955.955 0 0 0 .021-.106V3.1a1 1 0 0 0-2 0v2.364a.955.955 0 0 0 .021.106 5.406 5.406 0 0 0-4.154 5.262v1.8C6.867 15.018 5 15.614 5 16.807 5 17.4 5 18 5.538 18h12.924C19 18 19 17.4 19 16.807c0-1.193-1.867-1.789-1.867-4.175ZM6 6a1 1 0 0 1-.707-.293l-1-1a1 1 0 0 1 1.414-1.414l1 1A1 1 0 0 1 6 6Zm-2 4H3a1 1 0 0 1 0-2h1a1 1 0 1 1 0 2Zm14-4a1 1 0 0 1-.707-1.707l1-1a1 1 0 1 1 1.414 1.414l-1 1A1 1 0 0 1 18 6Zm3 4h-1a1 1 0 1 1 0-2h1a1 1 0 1 1 0 2ZM8.823 19a3.453 3.453 0 0 0 6.354 0H8.823Z"/>
 					</svg>
 				{/if}
 				{name}
@@ -209,3 +321,57 @@
 		<input type="checkbox" class="checkbox checkbox-primary checkbox-lg rounded-sm" bind:checked={hasActed} />
 	</div>
 </div>
+
+{#if modalOpen && !player}
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+		onclick={closeModal}
+		onkeydown={(e) => e.key === 'Escape' && closeModal()}
+		transition:fade={{ duration: 150 }}
+	>
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="bg-base-100 rounded-lg shadow-xl max-w-4xl max-h-[90vh] overflow-auto p-4"
+			onclick={(e) => e.stopPropagation()}
+			onpaste={handlePaste}
+		>
+			<div class="flex justify-between items-center mb-4">
+				<h3 class="text-lg font-bold">{name} - Stat Block</h3>
+				<button type="button" class="btn btn-ghost btn-sm btn-square" onclick={closeModal} aria-label="Close modal">
+					<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+					</svg>
+				</button>
+			</div>
+
+			{#if statBlockImage}
+				<div class="relative">
+					<img
+						src={statBlockImage}
+						alt="Stat block for {name}"
+						class="max-w-full rounded"
+						width={imageWidth ? imageWidth / 2 : undefined}
+						height={imageHeight ? imageHeight / 2 : undefined}
+					/>
+					<button
+						type="button"
+						class="btn btn-ghost btn-error btn-sm btn-square absolute top-2 right-2"
+						onclick={clearImage}
+						aria-label="Clear image"
+					>
+						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+			{:else}
+				<div class="border-2 border-dashed border-base-300 rounded-lg p-8 text-center text-base-content/60">
+					<p class="text-lg mb-2">Paste an image here</p>
+					<p class="text-sm">Use Ctrl+V (or Cmd+V on Mac) to paste a stat block image</p>
+				</div>
+			{/if}
+		</div>
+	</div>
+{/if}

@@ -9,8 +9,14 @@
   src: url("/assets/Eyad Al-Samman - Ghibli-Bold.otf") format("opentype");
 }
 
+@font-face {
+  font-family: "PT Sans", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
 :root {
-  --font-family: "Andada Pro", serif;
+  --font-family: "PT Sans", serif;
   --font-family-heading: "Ghibli", serif;
 }
 
@@ -25,7 +31,10 @@
   --color-neutral-content: #ebe0d5;
   --color-info: #6aaf9d;
   --color-success: #f2f0ee;
+  --color-error: #e92d43;
   --color-success-content: #c24b6e;
+  --color-error-content: #f2f0ee;
+  --color-base-200: #d9d3cd;
 }
 
 @layer base {

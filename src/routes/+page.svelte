@@ -112,6 +112,7 @@
 				<div class="flex flex-col gap-2 p-6">
 					{#each heroes as hero (hero.id)}
 						<CharacterCard
+							id={hero.id}
 							bind:name={hero.name}
 							bind:hp={hero.hp}
 							maxHp={hero.maxHp}
@@ -129,6 +130,7 @@
 				<div class="flex p-4 flex-col gap-2">
 					{#each enemies as enemy (enemy.id)}
 						<CharacterCard
+							id={enemy.id}
 							bind:name={enemy.name}
 							bind:hp={enemy.hp}
 							maxHp={enemy.maxHp}
@@ -141,6 +143,10 @@
 						/>
 					{/each}
 				</div>
+				<div class="p-4 overflow-auto">
+					<textarea placeholder="Scratchpad" class="textarea textarea-primary h-60 w-full"></textarea>
+				</div>
+				
 			</div>
 		</div>
 </div>
