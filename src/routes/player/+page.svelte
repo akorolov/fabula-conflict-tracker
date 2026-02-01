@@ -24,6 +24,11 @@
 		statuses: Statuses;
 	}
 
+	interface SharedImage {
+		id: number;
+		dataUrl: string;
+	}
+
 	const defaultStatuses: Statuses = {
 		dazed: false,
 		weak: false,
@@ -48,10 +53,12 @@
 
 	let heroes = $state<Character[]>([]);
 	let enemies = $state<Character[]>([]);
+	let sharedImages = $state<SharedImage[]>([]);
 
 	function loadData() {
 		heroes = migrateCharacters(loadFromStorage('heroes', []));
 		enemies = migrateCharacters(loadFromStorage('enemies', []));
+		sharedImages = loadFromStorage('shared-images', []);
 	}
 
 	onMount(() => {
@@ -59,7 +66,7 @@
 
 		// Listen for storage changes from other tabs
 		function handleStorage(e: StorageEvent) {
-			if (e.key === 'heroes' || e.key === 'enemies') {
+			if (e.key === 'heroes' || e.key === 'enemies' || e.key === 'shared-images') {
 				loadData();
 			}
 		}
@@ -106,6 +113,14 @@
 					/>
 				{/each}
 			</div>
+
+			{#if sharedImages.length > 0}
+				<div class="p-4 flex flex-wrap gap-2 items-start content-start">
+					{#each sharedImages as image (image.id)}
+						<img src={image.dataUrl} alt="Shared content" class="rounded-lg max-h-48 object-contain shadow-lg" />
+					{/each}
+				</div>
+			{/if}
 		</div>
 	</div>
 </div>

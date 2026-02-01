@@ -180,6 +180,13 @@
 		</svg>
 		<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm">Player View</span>
 	</a>
+	<a class="btn btn-xs btn-ghost btn-success rounded-none text-primary-content justify-start gap-2 min-w-max" href="/images">
+		<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" class="shrink-0">
+		<path fill-rule="evenodd" d="M13 10a1 1 0 0 1 1-1h.01a1 1 0 1 1 0 2H14a1 1 0 0 1-1-1Z" clip-rule="evenodd"/>
+		<path fill-rule="evenodd" d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6Zm6.9 12 3.8-5.4-4-2.667L4 16v2h4.9Zm-4.9-5.6V6h16v5.5l-4.5-3.667-5.2 6.5-2.4-1.6L4 12.4ZM20 18v-3.5l-4.5-3.667-5.714 7.143L10 18h10Z" clip-rule="evenodd"/>
+		</svg>
+		<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm">Images</span>
+	</a>
 	<a class="btn btn-xs btn-ghost btn-success rounded-none text-primary-content justify-start gap-2 min-w-max" href="/settings">
 		<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" class="shrink-0">
 		<path fill-rule="evenodd" d="M17 10v1.126c.367.095.714.24 1.032.428l.796-.797 1.415 1.415-.797.796c.188.318.333.665.428 1.032H21v2h-1.126c-.095.367-.24.714-.428 1.032l.797.796-1.415 1.415-.796-.797a3.979 3.979 0 0 1-1.032.428V20h-2v-1.126a3.977 3.977 0 0 1-1.032-.428l-.796.797-1.415-1.415.797-.796A3.975 3.975 0 0 1 12.126 16H11v-2h1.126c.095-.367.24-.714.428-1.032l-.797-.796 1.415-1.415.796.797A3.977 3.977 0 0 1 15 11.126V10h2Zm-1 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0-3a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" clip-rule="evenodd"/>
