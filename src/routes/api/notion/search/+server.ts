@@ -12,7 +12,6 @@ export const POST: RequestHandler = async ({ request }) => {
 			return json({ message: 'API key and database ID are required' }, { status: 400 });
 		}
 
-		// Query the database
 		const response = await fetch(`${NOTION_API_URL}/databases/${databaseId}/query`, {
 			method: 'POST',
 			headers: {
@@ -41,9 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 		const data = await response.json();
 
-		// Extract monster names and IDs from results
 		const results = data.results.map((page: any) => {
-			// Find the title property
 			const titleProp = Object.values(page.properties).find(
 				(prop: any) => prop.type === 'title'
 			) as any;

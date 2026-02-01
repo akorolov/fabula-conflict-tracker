@@ -2,7 +2,7 @@
 	import { browser } from '$app/environment';
 	import { fade } from 'svelte/transition';
 	import StatBlock from './StatBlock.svelte';
-	import type { MonsterStatBlock } from '$lib/index'
+	import type { MonsterStatBlock } from '$lib/index';
 
 	interface Statuses {
 		dazed: boolean;
@@ -37,7 +37,7 @@
 
 	// Notion search state
 	let searchQuery = $state('');
-	let searchResults = $state<Array<{ id: string; name: string, maxHp: number, maxMp: number }>>([]);
+	let searchResults = $state<Array<{ id: string; name: string }>>([]);
 	let isSearching = $state(false);
 	let searchError = $state('');
 
