@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { fade } from 'svelte/transition';
+	import StatBlock from './StatBlock.svelte';
+	import type { MonsterStatBlock } from '$lib/index'
 
 	interface Statuses {
 		dazed: boolean;
@@ -24,28 +26,42 @@
 		onremove?: () => void;
 	}
 
-	let { id, name = $bindable(), hp = $bindable(), maxHp, mp = $bindable(), maxMp, hasActed = $bindable(), player = $bindable(), statuses = $bindable(), onremove }: Props = $props();
+	let { id, name = $bindable(), hp = $bindable(), maxHp = $bindable(), mp = $bindable(), maxMp = $bindable(), hasActed = $bindable(), player = $bindable(), statuses = $bindable(), onremove }: Props = $props();
 
 	let modalOpen = $state(false);
+
+	// Notion configuration
+	let notionApiKey = $state('');
+	let notionDatabaseId = $state('');
+	let notionConfigured = $derived(!!notionApiKey && !!notionDatabaseId);
+
+	// Notion search state
+	let searchQuery = $state('');
+	let searchResults = $state<Array<{ id: string; name: string, maxHp: number, maxMp: number }>>([]);
+	let isSearching = $state(false);
+	let searchError = $state('');
+
+	// Stat block state
+	let statBlockData = $state<MonsterStatBlock | null>(null);
+	let isLoadingStatBlock = $state(false);
+
+	// Legacy image state (fallback when Notion not configured)
 	let statBlockImage = $state<string | null>(null);
 	let imageWidth = $state<number | null>(null);
 	let imageHeight = $state<number | null>(null);
 
-	// Load image from localStorage on mount
+	// Load Notion config and data on mount
 	$effect(() => {
-		if (browser && !player) {
-			const stored = localStorage.getItem(`enemy-image-${id}`);
-			if (stored) {
-				try {
-					const data = JSON.parse(stored);
-					statBlockImage = data.image;
-					imageWidth = data.width;
-					imageHeight = data.height;
-				} catch {
-					// Handle old format (just the image string)
-					statBlockImage = stored;
-				}
-			}
+		if (browser) {
+			notionApiKey = localStorage.getItem('notion-api-key') || '';
+			notionDatabaseId = localStorage.getItem('notion-database-id') || '';
+		}
+	});
+
+	// Save stat block to localStorage when it changes
+	$effect(() => {
+		if (browser && !player && modalOpen && statBlockData !== null) {
+			localStorage.setItem(`enemy-statblock-${id}`, JSON.stringify(statBlockData));
 		}
 	});
 
@@ -64,11 +80,122 @@
 	function openModal() {
 		if (!player) {
 			modalOpen = true;
+			// Refresh Notion config when opening modal
+			if (browser) {
+				notionApiKey = localStorage.getItem('notion-api-key') || '';
+				notionDatabaseId = localStorage.getItem('notion-database-id') || '';
+
+				// Try to load stat block first
+				const storedStatBlock = localStorage.getItem(`enemy-statblock-${id}`);
+				if (storedStatBlock) {
+					try {
+						statBlockData = JSON.parse(storedStatBlock);
+					} catch {
+						statBlockData = null;
+					}
+				}
+
+				// Load image as fallback
+				const storedImage = localStorage.getItem(`enemy-image-${id}`);
+				if (storedImage) {
+					try {
+						const data = JSON.parse(storedImage);
+						statBlockImage = data.image;
+						imageWidth = data.width;
+						imageHeight = data.height;
+					} catch {
+						statBlockImage = storedImage;
+					}
+				}
+			}
 		}
 	}
 
 	function closeModal() {
 		modalOpen = false;
+		searchQuery = '';
+		searchResults = [];
+		searchError = '';
+	}
+
+	async function searchNotion() {
+		if (!notionConfigured || !searchQuery.trim()) {
+			searchResults = [];
+			return;
+		}
+
+		isSearching = true;
+		searchError = '';
+
+		try {
+			const response = await fetch('/api/notion/search', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					apiKey: notionApiKey,
+					databaseId: notionDatabaseId,
+					query: searchQuery
+				})
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				searchResults = data.results || [];
+			} else {
+				const error = await response.json();
+				searchError = error.message || 'Search failed';
+				searchResults = [];
+			}
+		} catch (err) {
+			searchError = 'Network error';
+			searchResults = [];
+		} finally {
+			isSearching = false;
+		}
+	}
+
+	async function importMonster(pageId: string, monsterName: string) {
+		isLoadingStatBlock = true;
+		searchError = '';
+
+		try {
+			const response = await fetch('/api/notion/fetch', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({
+					apiKey: notionApiKey,
+					pageId
+				})
+			});
+
+			if (response.ok) {
+				const data = await response.json();
+				statBlockData = data.statBlock;
+				// Update the enemy name to match the imported monster
+				name = monsterName;
+				maxHp = statBlockData?.maxHp || 0;
+				hp = maxHp;
+				maxMp = statBlockData?.maxMp || 0;
+				mp = maxMp;
+				// Clear search
+				searchQuery = '';
+				searchResults = [];
+			} else {
+				const error = await response.json();
+				searchError = error.message || 'Failed to import monster';
+			}
+		} catch (err) {
+			searchError = 'Network error';
+		} finally {
+			isLoadingStatBlock = false;
+		}
+	}
+
+	function clearStatBlock() {
+		statBlockData = null;
+		if (browser) {
+			localStorage.removeItem(`enemy-statblock-${id}`);
+		}
 	}
 
 	function handlePaste(e: ClipboardEvent) {
@@ -83,18 +210,15 @@
 					reader.onload = (event) => {
 						const img = new Image();
 						img.onload = () => {
-							// Store original dimensions
 							imageWidth = img.width;
 							imageHeight = img.height;
 
-							// Convert to WebP using canvas
 							const canvas = document.createElement('canvas');
 							canvas.width = img.width;
 							canvas.height = img.height;
 							const ctx = canvas.getContext('2d');
 							if (ctx) {
 								ctx.drawImage(img, 0, 0);
-								// Export as WebP with 0.8 quality
 								statBlockImage = canvas.toDataURL('image/webp', 0.8);
 							}
 						};
@@ -115,7 +239,6 @@
 	}
 
 	function handleCardClick(e: MouseEvent) {
-		// Don't open modal if clicking on interactive elements
 		const target = e.target as HTMLElement;
 		if (
 			target.closest('button') ||
@@ -127,6 +250,14 @@
 			return;
 		}
 		openModal();
+	}
+
+	let searchTimeout: ReturnType<typeof setTimeout>;
+	function handleSearchInput() {
+		clearTimeout(searchTimeout);
+		searchTimeout = setTimeout(() => {
+			searchNotion();
+		}, 300);
 	}
 
 	let inCrisis = $derived.by(() => hp <= Math.floor(maxHp / 2));
@@ -142,7 +273,6 @@
 		const trimmed = expr.trim();
 		if (!trimmed) return currentValue;
 
-		// Check for simple addition/subtraction at the start
 		if (trimmed.startsWith('+') || trimmed.startsWith('-')) {
 			const num = parseFloat(trimmed);
 			if (!isNaN(num)) {
@@ -150,7 +280,6 @@
 			}
 		}
 
-		// Try to evaluate expressions like "60+5" or "44-10"
 		const match = trimmed.match(/^(\d+)\s*([+\-*/])\s*(\d+)$/);
 		if (match) {
 			const a = parseFloat(match[1]);
@@ -164,7 +293,6 @@
 			}
 		}
 
-		// Just a number
 		const num = parseFloat(trimmed);
 		if (!isNaN(num)) {
 			return num;
@@ -263,7 +391,7 @@
 				{name}
 			</button>
 		{/if}
-		
+
 		<div class="flex gap-2 flex-wrap text-sm mt-2">
 			{#if !player}
 			<div class="flex items-center gap-1">
@@ -316,7 +444,7 @@
 				<input class="join-item btn btn-ghost btn-xs btn-secondary rounded-none" type="checkbox" aria-label="enraged" bind:checked={statuses.enraged} />
 			</div>
 		</div>
-		
+
 		</div>
 		<input type="checkbox" class="checkbox checkbox-primary checkbox-lg rounded-sm" bind:checked={hasActed} />
 	</div>
@@ -346,32 +474,120 @@
 				</button>
 			</div>
 
-			{#if statBlockImage}
-				<div class="relative">
-					<img
-						src={statBlockImage}
-						alt="Stat block for {name}"
-						class="max-w-full rounded"
-						width={imageWidth ? imageWidth / 2 : undefined}
-						height={imageHeight ? imageHeight / 2 : undefined}
-					/>
-					<button
-						type="button"
-						class="btn btn-ghost btn-error btn-sm btn-square absolute top-2 right-2"
-						onclick={clearImage}
-						aria-label="Clear image"
-					>
-						<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-						</svg>
-					</button>
-				</div>
-			{:else}
-				<div class="border-2 border-dashed border-base-300 rounded-lg p-8 text-center text-base-content/60">
-					<p class="text-lg mb-2">Paste an image here</p>
-					<p class="text-sm">Use Ctrl+V (or Cmd+V on Mac) to paste a stat block image</p>
-				</div>
+			{#if notionConfigured}
+				<!-- Notion Search Mode -->
+				{#if statBlockData}
+					<!-- Display imported stat block -->
+					<div class="relative">
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm absolute top-0 right-0 z-10"
+							onclick={clearStatBlock}
+							aria-label="Clear stat block"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+							Clear
+						</button>
+						<StatBlock statBlock={statBlockData} />
+					</div>
+				{:else}
+					<!-- Search interface -->
+					<div class="space-y-4">
+						<div class="form-control">
+							<div class="join w-full">
+								<input
+									type="text"
+									bind:value={searchQuery}
+									oninput={handleSearchInput}
+									placeholder="Search for a monster..."
+									class="input input-bordered join-item flex-1"
+								/>
+								<button
+									type="button"
+									class="btn btn-primary join-item"
+									onclick={searchNotion}
+									disabled={isSearching}
+								>
+									{#if isSearching}
+										<span class="loading loading-spinner loading-sm"></span>
+									{:else}
+										<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+										</svg>
+									{/if}
+								</button>
+							</div>
+						</div>
+
+						{#if searchError}
+							<div class="alert alert-error">
+								<span>{searchError}</span>
+							</div>
+						{/if}
+
+						{#if searchResults.length > 0}
+							<div class="border rounded-lg divide-y">
+								{#each searchResults as result}
+									<button
+										type="button"
+										class="w-full px-4 py-3 text-left hover:bg-base-200 transition-colors flex justify-between items-center"
+										onclick={() => importMonster(result.id, result.name)}
+										disabled={isLoadingStatBlock}
+									>
+										<span class="font-medium">{result.name}</span>
+										{#if isLoadingStatBlock}
+											<span class="loading loading-spinner loading-sm"></span>
+										{:else}
+											<svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+												<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+											</svg>
+										{/if}
+									</button>
+								{/each}
+							</div>
+						{:else if searchQuery && !isSearching}
+							<div class="text-center text-base-content/60 py-8">
+								No monsters found matching "{searchQuery}"
+							</div>
+						{:else}
+							<div class="text-center text-base-content/60 py-8">
+								<p class="text-lg mb-2">Search your Notion Bestiary</p>
+								<p class="text-sm">Type a monster name above to search</p>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			{/if}
+			<!-- Fallback: Image paste mode -->
+				{#if statBlockImage}
+					<div class="relative">
+						<img
+							src={statBlockImage}
+							alt="Stat block for {name}"
+							class="max-w-full rounded"
+							width={imageWidth ? imageWidth / 2 : undefined}
+							height={imageHeight ? imageHeight / 2 : undefined}
+						/>
+						<button
+							type="button"
+							class="btn btn-ghost btn-error btn-sm btn-square absolute top-2 right-2"
+							onclick={clearImage}
+							aria-label="Clear image"
+						>
+							<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
+				{:else}
+					<div class="border-2 border-dashed border-base-300 rounded-lg p-8 text-center text-base-content/60">
+						<p class="text-lg mb-2">Paste an image here</p>
+						<p class="text-sm mb-4">Use Ctrl+V (or Cmd+V on Mac) to paste a stat block image</p>
+					</div>
+				{/if}
+			
 		</div>
 	</div>
 {/if}

@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import CharacterCard from '$lib/components/CharacterCard.svelte';
 
+
 	interface Statuses {
 		dazed: boolean;
 		weak: boolean;
@@ -31,8 +32,9 @@
 		slow: false,
 		enraged: false
 	};
-	let highest_id = $state<number>(loadFromStorage('highest_id', 7));
 
+	let highest_id = $state<number>(loadFromStorage('highest_id', 7));
+	
 	const defaultHeroes: Character[] = [
 		{ id: 1, name: 'Momo', hp: 45, maxHp: 45, mp: 30, maxMp: 30, hasActed: false, player: true, statuses: { ...defaultStatuses } },
 		{ id: 2, name: 'Yuuki', hp: 60, maxHp: 60, mp: 20, maxMp: 20, hasActed: false, player: true, statuses: { ...defaultStatuses } },
@@ -81,9 +83,16 @@
 	});
 
 	function resetAll() {
+		enemies.forEach((enemy) => {
+			localStorage.removeItem(`enemy-statblock-${enemy.id}`);
+			localStorage.removeItem(`enemy-image-${enemy.id}`);
+		});
 		heroes = structuredClone(defaultHeroes);
-		enemies = structuredClone(defaultEnemies);
-		highest_id = 7;
+		enemies = []
+		newEnemy()
+		newEnemy()
+		newEnemy()
+		newEnemy()
 	}
 
 	function newRound() {
@@ -102,6 +111,7 @@
 			enemies.splice(index, 1);
 		}
 	}
+
 </script>
 
 <div class="h-screen rounded-none flex flex-col">
@@ -133,9 +143,9 @@
 							id={enemy.id}
 							bind:name={enemy.name}
 							bind:hp={enemy.hp}
-							maxHp={enemy.maxHp}
+							bind:maxHp={enemy.maxHp}
 							bind:mp={enemy.mp}
-							maxMp={enemy.maxMp}
+							bind:maxMp={enemy.maxMp}
 							bind:hasActed={enemy.hasActed}
 							bind:player={enemy.player}
 							bind:statuses={enemy.statuses}
@@ -164,16 +174,24 @@
 		</svg>
 		<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm">Reset Round</span>
 	</button>
-	<button type="button" class="btn btn-xs btn-ghost btn-success rounded-none text-primary-content justify-start gap-2 min-w-max" onclick={resetAll}>
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
-			<path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0v2.43l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389 5.5 5.5 0 0 1 9.2-2.466l.312.311h-2.433a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
-		</svg>
-		<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm">Reset All</span>
-	</button>
 	<a class="btn btn-xs btn-ghost btn-success rounded-none text-primary-content justify-start gap-2 min-w-max" href="/player" target="_blank">
 		<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" class="shrink-0">
 		<path fill-rule="evenodd" d="M12 6a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Zm-1.5 8a4 4 0 0 0-4 4 2 2 0 0 0 2 2h7a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-3Zm6.82-3.096a5.51 5.51 0 0 0-2.797-6.293 3.5 3.5 0 1 1 2.796 6.292ZM19.5 18h.5a2 2 0 0 0 2-2 4 4 0 0 0-4-4h-1.1a5.503 5.503 0 0 1-.471.762A5.998 5.998 0 0 1 19.5 18ZM4 7.5a3.5 3.5 0 0 1 5.477-2.889 5.5 5.5 0 0 0-2.796 6.293A3.501 3.501 0 0 1 4 7.5ZM7.1 12H6a4 4 0 0 0-4 4 2 2 0 0 0 2 2h.5a5.998 5.998 0 0 1 3.071-5.238A5.505 5.505 0 0 1 7.1 12Z" clip-rule="evenodd"/>
 		</svg>
 		<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm">Player View</span>
 	</a>
+	<a class="btn btn-xs btn-ghost btn-success rounded-none text-primary-content justify-start gap-2 min-w-max" href="/settings">
+		<svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24" class="shrink-0">
+		<path fill-rule="evenodd" d="M17 10v1.126c.367.095.714.24 1.032.428l.796-.797 1.415 1.415-.797.796c.188.318.333.665.428 1.032H21v2h-1.126c-.095.367-.24.714-.428 1.032l.797.796-1.415 1.415-.796-.797a3.979 3.979 0 0 1-1.032.428V20h-2v-1.126a3.977 3.977 0 0 1-1.032-.428l-.796.797-1.415-1.415.797-.796A3.975 3.975 0 0 1 12.126 16H11v-2h1.126c.095-.367.24-.714.428-1.032l-.797-.796 1.415-1.415.796.797A3.977 3.977 0 0 1 15 11.126V10h2Zm-1 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm0-3a1 1 0 1 0 0 2 1 1 0 0 0 0-2Z" clip-rule="evenodd"/>
+		<path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5h-2V6H4v12h5v2H4a2 2 0 0 1-2-2V6Z"/>
+		</svg>
+		<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm">Settings</span>
+	</a>
+	<span class="divider divider-success"></span>
+		<button type="button" class="btn btn-xs btn-ghost btn-success rounded-none text-primary-content justify-start gap-2 min-w-max" onclick={resetAll}>
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 shrink-0">
+			<path fill-rule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0v2.43l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389 5.5 5.5 0 0 1 9.2-2.466l.312.311h-2.433a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clip-rule="evenodd" />
+		</svg>
+		<span class="opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-sm">Reset All</span>
+	</button>
 </div>
