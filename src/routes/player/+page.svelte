@@ -29,6 +29,14 @@
 		dataUrl: string;
 	}
 
+	interface Clock {
+		id: number;
+		name: string;
+		current: number;
+		max: number;
+		visible: boolean;
+	}
+
 	const defaultStatuses: Statuses = {
 		dazed: false,
 		weak: false,
@@ -54,11 +62,15 @@
 	let heroes = $state<Character[]>([]);
 	let enemies = $state<Character[]>([]);
 	let sharedImages = $state<SharedImage[]>([]);
+	let clocks = $state<Clock[]>([]);
+
+	let visibleClocks = $derived(clocks.filter(c => c.visible));
 
 	function loadData() {
 		heroes = migrateCharacters(loadFromStorage('heroes', []));
 		enemies = migrateCharacters(loadFromStorage('enemies', []));
 		sharedImages = loadFromStorage('shared-images', []);
+		clocks = loadFromStorage('clocks', []);
 	}
 
 	onMount(() => {
@@ -66,7 +78,7 @@
 
 		// Listen for storage changes from other tabs
 		function handleStorage(e: StorageEvent) {
-			if (e.key === 'heroes' || e.key === 'enemies' || e.key === 'shared-images') {
+			if (e.key === 'heroes' || e.key === 'enemies' || e.key === 'shared-images' || e.key === 'clocks') {
 				loadData();
 			}
 		}
@@ -99,6 +111,23 @@
 					/>
 				{/each}
 			</div>
+
+			<!-- Clocks Section -->
+			{#if visibleClocks.length > 0}
+				<div class="px-6 pb-4">
+					<div class="flex items-center gap-2 mb-2">
+						<h3 class="text-sm font-semibold">Clocks</h3>
+					</div>
+					<div class="flex flex-col gap-2">
+						{#each visibleClocks as clock (clock.id)}
+							<div class="flex items-center gap-1 bg-base-100 rounded px-2 py-1 text-sm w-full">
+								<span class="flex-1">{clock.name}</span>
+								<span class="font-mono min-w-[3ch] text-center">{clock.current}/{clock.max}</span>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 		<div class="p-4 h-screen overflow-auto">
 			<h2 class="text-base-100 bg-accent w-full text-right">Enemies</h2>

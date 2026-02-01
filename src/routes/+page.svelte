@@ -12,6 +12,14 @@
 		enraged: boolean;
 	}
 
+	interface Clock {
+		id: number;
+		name: string;
+		current: number;
+		max: number;
+		visible: boolean;
+	}
+
 	interface Character {
 		id: number;
 		name: string;
@@ -63,6 +71,41 @@
 
 	let heroes = $state<Character[]>(migrateCharacters(loadFromStorage('heroes', defaultHeroes)));
 	let enemies = $state<Character[]>(migrateCharacters(loadFromStorage('enemies', defaultEnemies)));
+
+	// Clocks (not persisted to localStorage)
+	let clockId = $state(0);
+	let clocks = $state<Clock[]>([]);
+
+	function addClock() {
+		clockId++;
+		clocks.push({ id: clockId, name: 'Clock', current: 0, max: 4, visible: false });
+	}
+
+	// Sync clocks to localStorage for player page (but don't restore on refresh)
+	$effect(() => {
+		if (browser) {
+			localStorage.setItem('clocks', JSON.stringify(clocks));
+		}
+	});
+
+	function removeClock(id: number) {
+		const index = clocks.findIndex(c => c.id === id);
+		if (index !== -1) {
+			clocks.splice(index, 1);
+		}
+	}
+
+	function incrementClock(clock: Clock) {
+		if (clock.current < clock.max) {
+			clock.current++;
+		}
+	}
+
+	function decrementClock(clock: Clock) {
+		if (clock.current > 0) {
+			clock.current--;
+		}
+	}
 
 	$effect(() => {
 		if (browser) {
@@ -133,6 +176,63 @@
 							bind:statuses={hero.statuses}
 						/>
 					{/each}
+				</div>
+
+				<!-- Clocks Section -->
+				<div class="px-6 pb-4">
+					<div class="flex items-center gap-2 mb-2">
+						<h3 class="text-sm font-semibold">Clocks</h3>
+						<button type="button" class="btn btn-xs btn-circle btn-ghost" onclick={addClock} title="Add Clock">
+							<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+								<path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+							</svg>
+						</button>
+					</div>
+					{#if clocks.length > 0}
+						<div class="flex flex-col gap-2">
+							{#each clocks as clock (clock.id)}
+								<div class="flex items-center gap-1 bg-base-100 rounded px-2 py-1 text-sm w-full">
+									<input
+										type="checkbox"
+										bind:checked={clock.visible}
+										class="checkbox checkbox-xs checkbox-primary"
+										title="Show on player view"
+									/>
+									<input
+										type="text"
+										bind:value={clock.name}
+										class="input input-xs flex-1 bg-transparent border-none p-0 focus:outline-none"
+									/>
+									<button
+										type="button"
+										class="btn btn-xs btn-ghost btn-circle"
+										onclick={() => decrementClock(clock)}
+										disabled={clock.current === 0}
+									>−</button>
+									<span class="font-mono min-w-[3ch] text-center">{clock.current}/{clock.max}</span>
+									<button
+										type="button"
+										class="btn btn-xs btn-ghost btn-circle"
+										onclick={() => incrementClock(clock)}
+										disabled={clock.current === clock.max}
+									>+</button>
+									<input
+										type="number"
+										bind:value={clock.max}
+										min="1"
+										class="input input-xs w-10 bg-transparent border-none p-0 text-center focus:outline-none"
+										title="Max value"
+									/>
+									<button
+										type="button"
+										class="btn btn-xs btn-ghost btn-circle text-error"
+										onclick={() => removeClock(clock.id)}
+										title="Remove clock"
+									>×</button>
+								</div>
+							{/each}
+						</div>
+					{/if}
 				</div>
 			</div>
 			<div class="p-4 mr-10 h-screen overflow-auto">
