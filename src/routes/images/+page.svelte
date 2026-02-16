@@ -1,10 +1,6 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-
-	interface SharedImage {
-		id: number;
-		dataUrl: string;
-	}
+	import type { SharedImage } from '$lib/types';
 
 	function loadFromStorage<T>(key: string, fallback: T): T {
 		if (!browser) return fallback;

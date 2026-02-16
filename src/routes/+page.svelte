@@ -1,36 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import CharacterCard from '$lib/components/CharacterCard.svelte';
-
-
-	interface Statuses {
-		dazed: boolean;
-		weak: boolean;
-		poisoned: boolean;
-		shaken: boolean;
-		slow: boolean;
-		enraged: boolean;
-	}
-
-	interface Clock {
-		id: number;
-		name: string;
-		current: number;
-		max: number;
-		visible: boolean;
-	}
-
-	interface Character {
-		id: number;
-		name: string;
-		hp: number;
-		maxHp: number;
-		mp: number;
-		maxMp: number;
-		hasActed: boolean;
-		player: boolean;
-		statuses: Statuses;
-	}
+	import type { Statuses, Character, Clock } from '$lib/types';
 
 	const defaultStatuses: Statuses = {
 		dazed: false,

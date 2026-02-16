@@ -2,40 +2,7 @@
 	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import PlayerCard from '$lib/components/PlayerCard.svelte';
-
-	interface Statuses {
-		dazed: boolean;
-		weak: boolean;
-		poisoned: boolean;
-		shaken: boolean;
-		slow: boolean;
-		enraged: boolean;
-	}
-
-	interface Character {
-		id: number;
-		name: string;
-		hp: number;
-		maxHp: number;
-		mp: number;
-		maxMp: number;
-		hasActed: boolean;
-		player: boolean;
-		statuses: Statuses;
-	}
-
-	interface SharedImage {
-		id: number;
-		dataUrl: string;
-	}
-
-	interface Clock {
-		id: number;
-		name: string;
-		current: number;
-		max: number;
-		visible: boolean;
-	}
+	import type { Statuses, Character, SharedImage, Clock } from '$lib/types';
 
 	const defaultStatuses: Statuses = {
 		dazed: false,

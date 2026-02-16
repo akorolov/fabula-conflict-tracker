@@ -1,12 +1,5 @@
 <script lang="ts">
-	interface Statuses {
-		dazed: boolean;
-		weak: boolean;
-		poisoned: boolean;
-		shaken: boolean;
-		slow: boolean;
-		enraged: boolean;
-	}
+	import type { Statuses } from '$lib/types';
 
 	interface Props {
 		name: string;
