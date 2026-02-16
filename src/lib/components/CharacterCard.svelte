@@ -60,7 +60,7 @@
 
 	// Save stat block to localStorage when it changes
 	$effect(() => {
-		if (browser && !player && modalOpen && statBlockData !== null) {
+		if (browser && !player && statBlockData !== null) {
 			localStorage.setItem(`enemy-statblock-${id}`, JSON.stringify(statBlockData));
 		}
 	});
@@ -490,7 +490,7 @@
 							</svg>
 							Clear
 						</button>
-						<StatBlock statBlock={statBlockData} {statuses} />
+						<StatBlock bind:statBlock={statBlockData} {statuses} />
 					</div>
 				{:else}
 					<!-- Search interface -->

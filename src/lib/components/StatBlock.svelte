@@ -15,7 +15,7 @@
 		statuses?: Statuses;
 	}
 
-	let { statBlock, statuses }: Props = $props();
+	let { statBlock = $bindable(), statuses }: Props = $props();
 
 	const dieScale = ['d6', 'd8', 'd10', 'd12', 'd20'] as const;
 
@@ -84,17 +84,73 @@
 	}
 
 	const affinityOrder = ['physical', 'air', 'bolt', 'dark', 'earth', 'fire', 'ice', 'light', 'poison'] as const;
+	const affinityValues = ['', 'RS', 'VU', 'IM', 'AB'];
+
+	function updateText(e: FocusEvent, field: keyof MonsterStatBlock) {
+		const el = e.target as HTMLElement;
+		const text = el.textContent?.trim() ?? '';
+		(statBlock as any)[field] = text;
+	}
+
+	function updateNumber(e: FocusEvent, field: keyof MonsterStatBlock) {
+		const el = e.target as HTMLElement;
+		const text = (el.textContent?.trim() ?? '').replace(/^[+]/, '');
+		const num = parseInt(text);
+		if (!isNaN(num)) {
+			(statBlock as any)[field] = num;
+		} else {
+			el.textContent = String((statBlock as any)[field]);
+		}
+	}
+
+	function updateAttribute(e: FocusEvent, attr: keyof MonsterStatBlock['attributes']) {
+		const el = e.target as HTMLElement;
+		const text = el.textContent?.trim() ?? '';
+		if (text) {
+			statBlock.attributes[attr] = text;
+		} else {
+			el.textContent = statBlock.attributes[attr];
+		}
+	}
+
+	function cycleAffinity(aff: keyof MonsterStatBlock['affinities']) {
+		const current = statBlock.affinities[aff].toUpperCase();
+		const idx = affinityValues.indexOf(current);
+		const next = affinityValues[(idx + 1) % affinityValues.length];
+		statBlock.affinities[aff] = next;
+	}
+
+	function updateArrayItem(e: FocusEvent, field: 'basicAttacks' | 'spells' | 'otherActions' | 'specialRules', index: number) {
+		const el = e.target as HTMLElement;
+		const text = el.textContent?.trim() ?? '';
+		if (text) {
+			statBlock[field][index] = text;
+		} else {
+			el.textContent = statBlock[field][index];
+		}
+	}
+
+	function handleKeydown(e: KeyboardEvent) {
+		if (e.key === 'Enter') {
+			e.preventDefault();
+			(e.target as HTMLElement).blur();
+		}
+	}
 </script>
 
 <div class="stat-block space-y-4">
 	<!-- Header -->
 	<div class="bg-primary text-primary-content px-4 py-2 rounded-sm">
-		<h3 class="text-xl font-bold text-base-100">{statBlock.name}</h3>
+		<h3 class="text-xl font-bold text-base-100">
+			<span contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateText(e, 'name')} onkeydown={handleKeydown}>{statBlock.name}</span>
+		</h3>
 		<div class="text-sm opacity-90">
-			Lv. {statBlock.level} {statBlock.rank} • {statBlock.species}
+			Lv. <span contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateNumber(e, 'level')} onkeydown={handleKeydown}>{statBlock.level}</span>
+			{' '}<span contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateText(e, 'rank')} onkeydown={handleKeydown}>{statBlock.rank}</span>
+			{' • '}<span contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateText(e, 'species')} onkeydown={handleKeydown}>{statBlock.species}</span>
 			<div class="text-sm italic">
-			{statBlock.description}
-		</div>
+				<span contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateText(e, 'description')} onkeydown={handleKeydown}>{statBlock.description}</span>
+			</div>
 		</div>
 	</div>
 
@@ -102,7 +158,7 @@
 	{#if statBlock.traits}
 		<div class="text-sm">
 			<span class="font-semibold">Traits:</span>
-			<span class="italic">{statBlock.traits}</span>
+			<span class="italic editable" contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateText(e, 'traits')} onkeydown={handleKeydown}>{statBlock.traits}</span>
 		</div>
 	{/if}
 
@@ -110,43 +166,43 @@
 	<div class="grid grid-cols-4 gap-2 text-center text-sm">
 		<div class="bg-base-200 rounded p-2">
 			<div class="font-semibold text-error">HP</div>
-			<div>{statBlock.maxHp}</div>
+			<div contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateNumber(e, 'maxHp')} onkeydown={handleKeydown}>{statBlock.maxHp}</div>
 		</div>
 		<div class="bg-base-200 rounded p-2">
 			<div class="font-semibold text-warning">Crisis</div>
-			<div>{statBlock.crisis}</div>
+			<div contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateNumber(e, 'crisis')} onkeydown={handleKeydown}>{statBlock.crisis}</div>
 		</div>
 		<div class="bg-base-200 rounded p-2">
 			<div class="font-semibold text-info">MP</div>
-			<div>{statBlock.maxMp}</div>
+			<div contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateNumber(e, 'maxMp')} onkeydown={handleKeydown}>{statBlock.maxMp}</div>
 		</div>
 		<div class="bg-base-200 rounded p-2">
 			<div class="font-semibold">Init</div>
-			<div>{statBlock.initiative}</div>
+			<div contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateNumber(e, 'initiative')} onkeydown={handleKeydown}>{statBlock.initiative}</div>
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">DEX</div>
-			<div class="text-lg font-semibold" class:text-error={dex.modified}>{dex.value}{#if dex.modified}*{/if}</div>
+			<div class="text-lg font-semibold editable" class:text-error={dex.modified} contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateAttribute(e, 'dex')} onkeydown={handleKeydown}>{dex.value}{#if dex.modified}*{/if}</div>
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">INS</div>
-			<div class="text-lg font-semibold" class:text-error={ins.modified}>{ins.value}{#if ins.modified}*{/if}</div>
+			<div class="text-lg font-semibold editable" class:text-error={ins.modified} contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateAttribute(e, 'ins')} onkeydown={handleKeydown}>{ins.value}{#if ins.modified}*{/if}</div>
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">MIG</div>
-			<div class="text-lg font-semibold" class:text-error={mig.modified}>{mig.value}{#if mig.modified}*{/if}</div>
+			<div class="text-lg font-semibold editable" class:text-error={mig.modified} contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateAttribute(e, 'mig')} onkeydown={handleKeydown}>{mig.value}{#if mig.modified}*{/if}</div>
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">WLP</div>
-			<div class="text-lg font-semibold" class:text-error={wlp.modified}>{wlp.value}{#if wlp.modified}*{/if}</div>
+			<div class="text-lg font-semibold editable" class:text-error={wlp.modified} contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateAttribute(e, 'wlp')} onkeydown={handleKeydown}>{wlp.value}{#if wlp.modified}*{/if}</div>
 		</div>
 		<div class="bg-base-200 rounded p-2">
 			<div class="font-semibold">DEF</div>
-			<div>+{statBlock.defBonus}</div>
+			<div contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateNumber(e, 'defBonus')} onkeydown={handleKeydown}>+{statBlock.defBonus}</div>
 		</div>
 		<div class="bg-base-200 rounded p-2">
 			<div class="font-semibold">M.DEF</div>
-			<div>+{statBlock.mDefBonus}</div>
+			<div contenteditable="true" role="textbox" tabindex="0" class="editable" onblur={(e) => updateNumber(e, 'mDefBonus')} onkeydown={handleKeydown}>+{statBlock.mDefBonus}</div>
 		</div>
 	</div>
 
@@ -157,9 +213,14 @@
 			{#each affinityOrder as aff (aff)}
 				<div class="flex flex-col">
 					<div class="font-medium capitalize mb-0.5">{aff.slice(0, 3)}</div>
-					<div class="rounded px-1 py-0.5 {getAffinityClass(statBlock.affinities[aff])}">
+					<button
+						type="button"
+						class="rounded px-1 py-0.5 cursor-pointer transition-opacity hover:opacity-80 {getAffinityClass(statBlock.affinities[aff])}"
+						onclick={() => cycleAffinity(aff)}
+						title="Click to cycle: —/RS/VU/IM/AB"
+					>
 						{getAffinityLabel(statBlock.affinities[aff])}
-					</div>
+					</button>
 				</div>
 			{/each}
 		</div>
@@ -171,7 +232,7 @@
 			<div class="font-semibold text-sm bg-secondary/20 px-2 py-1 rounded-t">Basic Attacks</div>
 			<div class="border border-secondary/20 border-t-0 rounded-b p-2 space-y-2">
 				{#each statBlock.basicAttacks as attack, i (i)}
-					<div class="text-sm">{attack}</div>
+					<div class="text-sm editable" contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateArrayItem(e, 'basicAttacks', i)} onkeydown={handleKeydown}>{attack}</div>
 				{/each}
 			</div>
 		</div>
@@ -182,8 +243,8 @@
 		<div>
 			<div class="font-semibold text-sm bg-secondary/20 px-2 py-1 rounded-t">Spells</div>
 			<div class="border border-secondary/20 border-t-0 rounded-b p-2 space-y-2">
-				{#each statBlock.spells as attack, i (i)}
-					<div class="text-sm">{attack}</div>
+				{#each statBlock.spells as spell, i (i)}
+					<div class="text-sm editable" contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateArrayItem(e, 'spells', i)} onkeydown={handleKeydown}>{spell}</div>
 				{/each}
 			</div>
 		</div>
@@ -194,8 +255,8 @@
 		<div>
 			<div class="font-semibold text-sm bg-accent/20 px-2 py-1 rounded-t">Other Actions</div>
 			<div class="border border-accent/20 border-t-0 rounded-b p-2 space-y-2">
-				{#each statBlock.otherActions as attack, i (i)}
-					<div class="text-sm">{attack}</div>
+				{#each statBlock.otherActions as action, i (i)}
+					<div class="text-sm editable" contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateArrayItem(e, 'otherActions', i)} onkeydown={handleKeydown}>{action}</div>
 				{/each}
 			</div>
 		</div>
@@ -207,9 +268,26 @@
 			<div class="font-semibold text-sm bg-accent/20 px-2 py-1 rounded-t">Special Rules</div>
 			<div class="border border-accent/20 border-t-0 rounded-b p-2 space-y-2">
 				{#each statBlock.specialRules as rule, i (i)}
-					<div class="text-sm">{rule}</div>
+					<div class="text-sm editable" contenteditable="true" role="textbox" tabindex="0" onblur={(e) => updateArrayItem(e, 'specialRules', i)} onkeydown={handleKeydown}>{rule}</div>
 				{/each}
 			</div>
 		</div>
 	{/if}
 </div>
+
+<style>
+	.editable {
+		cursor: text;
+		border-radius: 2px;
+		transition: outline-color 0.15s;
+		outline: 1px solid transparent;
+		min-width: 1em;
+	}
+	.editable:hover {
+		outline-color: oklch(var(--bc) / 0.2);
+	}
+	.editable:focus {
+		outline-color: oklch(var(--bc) / 0.5);
+		outline-offset: 1px;
+	}
+</style>
