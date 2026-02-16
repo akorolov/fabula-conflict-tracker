@@ -30,6 +30,7 @@
 	let enemies = $state<Character[]>([]);
 	let sharedImages = $state<SharedImage[]>([]);
 	let clocks = $state<Clock[]>([]);
+	let sharedScratchpad = $state<string>('');
 
 	let visibleClocks = $derived(clocks.filter(c => c.visible));
 
@@ -38,6 +39,7 @@
 		enemies = migrateCharacters(loadFromStorage('enemies', []));
 		sharedImages = loadFromStorage('shared-images', []);
 		clocks = loadFromStorage('clocks', []);
+		sharedScratchpad = loadFromStorage('shared-scratchpad', '');
 	}
 
 	onMount(() => {
@@ -45,7 +47,7 @@
 
 		// Listen for storage changes from other tabs
 		function handleStorage(e: StorageEvent) {
-			if (e.key === 'heroes' || e.key === 'enemies' || e.key === 'shared-images' || e.key === 'clocks') {
+			if (e.key === 'heroes' || e.key === 'enemies' || e.key === 'shared-images' || e.key === 'clocks' || e.key === 'shared-scratchpad') {
 				loadData();
 			}
 		}
@@ -115,6 +117,12 @@
 					{#each sharedImages as image (image.id)}
 						<img src={image.dataUrl} alt="Shared content" class="rounded-lg max-h-48 object-contain shadow-lg" />
 					{/each}
+				</div>
+			{/if}
+
+			{#if sharedScratchpad}
+				<div class="p-4">
+					<div class="bg-base-100 rounded-lg p-4 whitespace-pre-wrap text-2xl leading-relaxed">{sharedScratchpad}</div>
 				</div>
 			{/if}
 		</div>

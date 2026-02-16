@@ -43,6 +43,9 @@
 	let heroes = $state<Character[]>(migrateCharacters(loadFromStorage('heroes', defaultHeroes)));
 	let enemies = $state<Character[]>(migrateCharacters(loadFromStorage('enemies', defaultEnemies)));
 
+	let dmScratchpad = $state<string>(loadFromStorage('dm-scratchpad', ''));
+	let sharedScratchpad = $state<string>(loadFromStorage('shared-scratchpad', ''));
+
 	// Clocks (not persisted to localStorage)
 	let clockId = $state(0);
 	let clocks = $state<Clock[]>([]);
@@ -93,6 +96,18 @@
 	$effect(() => {
 		if (browser) {
 			localStorage.setItem('highest_id', JSON.stringify(highest_id));
+		}
+	});
+
+	$effect(() => {
+		if (browser) {
+			localStorage.setItem('dm-scratchpad', JSON.stringify(dmScratchpad));
+		}
+	});
+
+	$effect(() => {
+		if (browser) {
+			localStorage.setItem('shared-scratchpad', JSON.stringify(sharedScratchpad));
 		}
 	});
 
@@ -224,8 +239,9 @@
 						/>
 					{/each}
 				</div>
-				<div class="p-4 overflow-auto">
-					<textarea placeholder="Scratchpad" class="textarea textarea-primary h-60 w-full"></textarea>
+				<div class="p-4 overflow-auto flex flex-col gap-2">
+					<textarea placeholder="DM Scratchpad (private)" bind:value={dmScratchpad} class="textarea textarea-primary h-40 w-full"></textarea>
+					<textarea placeholder="Shared Scratchpad (visible to players)" bind:value={sharedScratchpad} class="textarea textarea-secondary h-40 w-full"></textarea>
 				</div>
 				
 			</div>
