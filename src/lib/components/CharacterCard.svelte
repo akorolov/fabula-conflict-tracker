@@ -490,7 +490,7 @@
 							</svg>
 							Clear
 						</button>
-						<StatBlock statBlock={statBlockData} />
+						<StatBlock statBlock={statBlockData} {statuses} />
 					</div>
 				{:else}
 					<!-- Search interface -->

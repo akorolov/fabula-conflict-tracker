@@ -1,11 +1,69 @@
 <script lang="ts">
 	import type { MonsterStatBlock } from '$lib/index'
 
-	interface Props {
-		statBlock: MonsterStatBlock;
+	interface Statuses {
+		dazed: boolean;
+		weak: boolean;
+		poisoned: boolean;
+		shaken: boolean;
+		slow: boolean;
+		enraged: boolean;
 	}
 
-	let { statBlock }: Props = $props();
+	interface Props {
+		statBlock: MonsterStatBlock;
+		statuses?: Statuses;
+	}
+
+	let { statBlock, statuses }: Props = $props();
+
+	const dieScale = ['d6', 'd8', 'd10', 'd12', 'd20'] as const;
+
+	function reduceDie(die: string, steps: number): string {
+		const lower = die.toLowerCase();
+		const idx = dieScale.indexOf(lower as typeof dieScale[number]);
+		if (idx === -1) return die;
+		const newIdx = Math.max(0, idx - steps);
+		return dieScale[newIdx];
+	}
+
+	// Compute reductions per attribute based on active statuses
+	let attrReductions = $derived.by(() => {
+		const r = { dex: 0, ins: 0, mig: 0, wlp: 0 };
+		if (!statuses) return r;
+		if (statuses.slow) r.dex++;
+		if (statuses.enraged) { r.dex++; r.ins++; }
+		if (statuses.dazed) r.ins++;
+		if (statuses.weak) r.mig++;
+		if (statuses.poisoned) { r.mig++; r.wlp++; }
+		if (statuses.shaken) r.wlp++;
+		return r;
+	});
+
+	let dex = $derived.by(() => {
+		const reduction = attrReductions.dex;
+		return reduction === 0
+			? { value: statBlock.attributes.dex, modified: false }
+			: { value: reduceDie(statBlock.attributes.dex, reduction), modified: true };
+	});
+	let ins = $derived.by(() => {
+		const reduction = attrReductions.ins;
+		return reduction === 0
+			? { value: statBlock.attributes.ins, modified: false }
+			: { value: reduceDie(statBlock.attributes.ins, reduction), modified: true };
+	});
+	let mig = $derived.by(() => {
+		const reduction = attrReductions.mig;
+		return reduction === 0
+			? { value: statBlock.attributes.mig, modified: false }
+			: { value: reduceDie(statBlock.attributes.mig, reduction), modified: true };
+	});
+	let wlp = $derived.by(() => {
+		const reduction = attrReductions.wlp;
+		return reduction === 0
+			? { value: statBlock.attributes.wlp, modified: false }
+			: { value: reduceDie(statBlock.attributes.wlp, reduction), modified: true };
+	});
 
 	function getAffinityClass(value: string): string {
 		const v = value.toUpperCase();
@@ -68,19 +126,19 @@
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">DEX</div>
-			<div class="text-lg font-semibold">{statBlock.attributes.dex}</div>
+			<div class="text-lg font-semibold" class:text-error={dex.modified}>{dex.value}{#if dex.modified}*{/if}</div>
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">INS</div>
-			<div class="text-lg font-semibold">{statBlock.attributes.ins}</div>
+			<div class="text-lg font-semibold" class:text-error={ins.modified}>{ins.value}{#if ins.modified}*{/if}</div>
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">MIG</div>
-			<div class="text-lg font-semibold">{statBlock.attributes.mig}</div>
+			<div class="text-lg font-semibold" class:text-error={mig.modified}>{mig.value}{#if mig.modified}*{/if}</div>
 		</div>
 		<div class="bg-accent/30 rounded p-2">
 			<div class="font-bold text-xs">WLP</div>
-			<div class="text-lg font-semibold">{statBlock.attributes.wlp}</div>
+			<div class="text-lg font-semibold" class:text-error={wlp.modified}>{wlp.value}{#if wlp.modified}*{/if}</div>
 		</div>
 		<div class="bg-base-200 rounded p-2">
 			<div class="font-semibold">DEF</div>
